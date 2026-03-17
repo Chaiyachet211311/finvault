@@ -8,7 +8,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use(express.static(path.join(__dirname)));
+app.use(express.static(path.join(__dirname)));  
 
 // ── CONFIG ────────────────────────────────────
 // const CLAUDE_API_KEY = "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";
