@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FinVault — Personal Finance Dashboard</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07090d;--bg2:#0d1017;--bg3:#12161e;--bg4:#181e2a;--bg5:#1e2535;
+  --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.11);--border3:rgba(255,255,255,0.18);
+  --text:#dde4ee;--text2:#7a8fa8;--text3:#3d4f65;--text4:#2a3547;
+  --accent:#00c8f0;--accent2:#0099bb;--accent3:rgba(0,200,240,0.08);
+  --green:#00c87a;--green2:rgba(0,200,122,0.1);
+  --red:#ff4560;--red2:rgba(255,69,96,0.1);
+  --amber:#f5a623;--amber2:rgba(245,166,35,0.1);
+  --purple:#9b6dff;--purple2:rgba(155,109,255,0.1);
+  --pink:#f06292;--pink2:rgba(240,98,146,0.1);
+  --font:'IBM Plex Sans',sans-serif;--mono:'IBM Plex Mono',monospace;
+}
+body{background:var(--bg);font-family:var(--font);color:var(--text);min-height:100vh;font-size:14px}
+a{color:var(--accent);text-decoration:none}
+
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 18px;height:46px;background:var(--bg2);border-bottom:1px solid var(--border2);position:sticky;top:0;z-index:200}
+.logo{font-family:var(--mono);font-size:12px;color:var(--accent);letter-spacing:3px;display:flex;align-items:center;gap:8px}
+.logo-hex{width:20px;height:20px;background:var(--accent);clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);opacity:.9}
+.nav{display:flex;gap:1px}
+.nb{background:none;border:none;color:var(--text3);font-family:var(--font);font-size:10px;padding:5px 11px;border-radius:4px;cursor:pointer;letter-spacing:.6px;text-transform:uppercase;transition:all .15s;white-space:nowrap}
+.nb:hover{color:var(--text2);background:var(--bg4)}
+.nb.active{color:var(--accent);background:var(--accent3)}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.server-status{display:flex;align-items:center;gap:5px;font-size:10px;font-family:var(--mono);color:var(--text3)}
+.sdot{width:6px;height:6px;border-radius:50%;background:var(--text4);transition:background .3s}
+.sdot.online{background:var(--green);box-shadow:0 0 6px rgba(0,200,122,.5)}
+.sdot.offline{background:var(--red)}
+.clock{font-family:var(--mono);font-size:10px;color:var(--text4)}
+
+.page{padding:14px;display:none}
+.page.active{display:block}
+
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:14px}
+.mc{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:13px 15px;position:relative;overflow:hidden}
+.mc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.mc.green::before{background:var(--green)}
+.mc.red::before{background:var(--red)}
+.mc.amber::before{background:var(--amber)}
+.mc.purple::before{background:var(--purple)}
+.mc.blue::before{background:var(--accent)}
+.mc-label{font-size:9px;color:var(--text3);letter-spacing:1.2px;text-transform:uppercase;margin-bottom:7px}
+.mc-val{font-family:var(--mono);font-size:21px;font-weight:500;color:var(--text);line-height:1}
+.mc-sub{font-size:10px;color:var(--text2);margin-top:5px}
+.col-green{color:var(--green)}.col-red{color:var(--red)}.col-amber{color:var(--amber)}.col-accent{color:var(--accent)}.col-purple{color:var(--purple)}
+
+.two-col{display:grid;grid-template-columns:1fr 320px;gap:10px;margin-bottom:10px}
+.full{margin-bottom:10px}
+.panel{background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.ph{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);min-height:40px}
+.pt{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--text2);font-weight:500}
+.pb{padding:14px}
+
+.badge{font-size:9px;padding:2px 7px;border-radius:3px;font-family:var(--mono);letter-spacing:.3px}
+.b-blue{background:rgba(0,200,240,.1);color:var(--accent)}
+.b-green{background:var(--green2);color:var(--green)}
+.b-red{background:var(--red2);color:var(--red)}
+.b-amber{background:var(--amber2);color:var(--amber)}
+.b-purple{background:var(--purple2);color:var(--purple)}
+
+.btn{background:none;border:1px solid var(--border2);color:var(--text2);font-family:var(--font);font-size:11px;padding:5px 12px;border-radius:5px;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:5px}
+.btn:hover{border-color:var(--border3);color:var(--text);background:var(--bg4)}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#000;font-weight:500}
+.btn-primary:hover{background:var(--accent2);border-color:var(--accent2);color:#fff}
+.btn-green{background:var(--green2);border-color:rgba(0,200,122,.3);color:var(--green)}
+.btn-red{background:var(--red2);border-color:rgba(255,69,96,.3);color:var(--red)}
+.btn-sm{padding:3px 8px;font-size:10px}
+.btn-icon{padding:4px 7px;border-radius:4px;font-size:12px}
+
+.txlist{display:flex;flex-direction:column;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--bg5) transparent}
+.txrow{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);transition:background .1s}
+.txrow:hover{background:var(--bg3)}
+.txrow:last-child{border-bottom:none}
+.tx-ico{width:30px;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.tx-info{flex:1;min-width:0}
+.tx-merchant{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tx-meta{font-size:10px;color:var(--text2);margin-top:2px}
+.tx-date{font-size:10px;color:var(--text3);font-family:var(--mono);flex-shrink:0}
+.tx-amount{font-family:var(--mono);font-size:12px;font-weight:500;text-align:right;flex-shrink:0;min-width:72px}
+.tx-actions{display:flex;gap:3px;opacity:0;transition:opacity .15s;flex-shrink:0}
+.txrow:hover .tx-actions{opacity:1}
+
+.etable{width:100%;border-collapse:collapse;font-size:12px}
+.etable th{color:var(--text3);text-align:left;padding:6px 10px;font-size:9px;letter-spacing:.8px;text-transform:uppercase;font-weight:400;border-bottom:1px solid var(--border);white-space:nowrap}
+.etable td{padding:9px 10px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle}
+.etable tr:last-child td{border-bottom:none}
+.etable tr:hover td{background:var(--bg3)}
+.etable .mono{font-family:var(--mono)}
+.etable .actions{display:flex;gap:4px;opacity:0;transition:opacity .15s}
+.etable tr:hover .actions{opacity:1}
+
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:500;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:22px;width:440px;max-width:95vw;max-height:85vh;overflow-y:auto}
+.modal-title{font-size:13px;font-weight:500;margin-bottom:18px;color:var(--text);display:flex;align-items:center;justify-content:space-between}
+.modal-close{background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:2px 6px;border-radius:3px}
+.modal-close:hover{color:var(--text);background:var(--bg5)}
+.form-row{margin-bottom:13px}
+.form-label{font-size:10px;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:5px;display:block}
+.form-input,.form-select{width:100%;background:var(--bg2);border:1px solid var(--border2);color:var(--text);font-family:var(--font);font-size:12px;padding:8px 11px;border-radius:6px;outline:none;transition:border-color .15s}
+.form-input:focus,.form-select:focus{border-color:var(--accent)}
+.form-select option{background:var(--bg3)}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.modal-footer{display:flex;gap:8px;margin-top:18px;justify-content:flex-end}
+
+.bitem{margin-bottom:13px}
+.brow{display:flex;justify-content:space-between;margin-bottom:5px;align-items:center}
+.bcat{font-size:12px}.bnums{font-size:10px;font-family:var(--mono);color:var(--text2)}
+.bbar{height:3px;background:var(--bg5);border-radius:2px;overflow:hidden}
+.bfill{height:100%;border-radius:2px;transition:width .5s}
+
+.nw-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+.nw-row:last-child{border-bottom:none}
+.nw-name{font-size:12px;flex:1}
+.nw-bar{flex:1;height:3px;background:var(--bg5);border-radius:2px;overflow:hidden}
+.nw-fill{height:100%;border-radius:2px}
+.nw-val{font-family:var(--mono);font-size:11px;min-width:85px;text-align:right}
+.nw-total{display:flex;justify-content:space-between;padding:12px 0;border-top:1px solid var(--border2);margin-top:6px}
+.nw-total-label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text2)}
+.nw-total-val{font-family:var(--mono);font-size:18px;font-weight:500;color:var(--accent)}
+.nw-section-label{font-size:9px;text-transform:uppercase;letter-spacing:1.2px;color:var(--text3);margin:10px 0 8px}
+
+.chart-wrap{position:relative;width:100%;height:200px}
+
+.ai-chat{display:flex;flex-direction:column;height:380px}
+.ai-messages{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;scrollbar-width:thin;scrollbar-color:var(--bg5) transparent}
+.ai-msg{max-width:85%;border-radius:8px;padding:9px 12px;font-size:12px;line-height:1.55}
+.ai-msg.user{background:var(--accent3);border:1px solid rgba(0,200,240,.15);color:var(--text);align-self:flex-end;border-bottom-right-radius:2px}
+.ai-msg.bot{background:var(--bg4);border:1px solid var(--border);color:var(--text);align-self:flex-start;border-bottom-left-radius:2px}
+.ai-msg.bot .ai-label-sm{font-size:9px;color:var(--text3);font-family:var(--mono);letter-spacing:.5px;margin-bottom:5px}
+.ai-input-row{display:flex;gap:7px;padding:10px 12px;border-top:1px solid var(--border);background:var(--bg3)}
+.ai-text-input{flex:1;background:var(--bg2);border:1px solid var(--border2);color:var(--text);font-family:var(--font);font-size:12px;padding:8px 11px;border-radius:6px;outline:none;transition:border-color .15s}
+.ai-text-input:focus{border-color:var(--accent)}
+.ai-send-btn{background:var(--accent);border:none;color:#000;font-family:var(--font);font-size:11px;font-weight:500;padding:8px 14px;border-radius:6px;cursor:pointer;white-space:nowrap}
+.ai-send-btn:disabled{background:var(--bg5);color:var(--text3);cursor:not-allowed}
+.ai-quick{display:flex;gap:6px;flex-wrap:wrap;padding:8px 12px 0;border-top:1px solid var(--border)}
+.ai-chip{background:none;border:1px solid var(--border2);color:var(--text2);font-size:10px;padding:4px 9px;border-radius:4px;cursor:pointer;font-family:var(--font);transition:all .15s}
+.ai-chip:hover{border-color:var(--accent);color:var(--accent)}
+
+.spinner{display:inline-block;width:12px;height:12px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Live price badge */
+.price-live{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px}
+.price-dot{width:5px;height:5px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.price-loading{color:var(--text3);font-size:10px;font-family:var(--mono)}
+
+#toast{position:fixed;bottom:16px;right:16px;background:var(--bg4);border:1px solid var(--green);color:var(--green);font-size:11px;padding:9px 15px;border-radius:6px;font-family:var(--mono);display:none;z-index:999}
+
+.wa-new-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(0,200,122,.15);border:1px solid rgba(0,200,122,.3);color:var(--green);font-size:10px;padding:3px 8px;border-radius:4px;font-family:var(--mono);animation:fadeIn .4s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+
+.confirm-bar{background:rgba(0,200,240,.07);border:1px solid rgba(0,200,240,.2);border-radius:6px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;font-size:12px;flex-wrap:wrap;gap:8px}
+.confirm-fields{display:flex;gap:14px;flex-wrap:wrap}
+.cf-item{display:flex;flex-direction:column;gap:2px}
+.cf-key{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px}
+.cf-val{font-family:var(--mono);font-size:12px;color:var(--accent)}
+.confirm-btns{display:flex;gap:6px;flex-shrink:0}
+
+@media(max-width:800px){
+  .metrics{grid-template-columns:repeat(2,1fr)}
+  .two-col{grid-template-columns:1fr}
+  .nav{flex-wrap:wrap}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo"><div class="logo-hex"></div>FINVAULT</div>
+  <nav class="nav">
+    <button class="nb active" onclick="nav('dashboard',this)">Dashboard</button>
+    <button class="nb" onclick="nav('expenses',this)">Expenses</button>
+    <button class="nb" onclick="nav('investments',this)">Portfolio</button>
+    <button class="nb" onclick="nav('income',this)">Income</button>
+    <button class="nb" onclick="nav('budget',this)">Budget</button>
+    <button class="nb" onclick="nav('networth',this)">Net Worth</button>
+    <button class="nb" onclick="nav('assistant',this)">AI Assistant</button>
+  </nav>
+  <div class="topbar-right">
+    <div class="server-status"><span class="sdot" id="sdot"></span><span id="stext">Connecting...</span></div>
+    <div class="clock" id="clock">--:--:--</div>
+  </div>
+</div>
+
+<div id="pg-dashboard" class="page active"></div>
+<div id="pg-expenses" class="page"></div>
+<div id="pg-investments" class="page"></div>
+<div id="pg-income" class="page"></div>
+<div id="pg-budget" class="page"></div>
+<div id="pg-networth" class="page"></div>
+<div id="pg-assistant" class="page"></div>
+
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-title"><span id="modalTitle">Edit</span><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div id="modalBody"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitModal()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+// ═══════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════
+const SERVER = 'http://localhost:3000';
+const CLAUDE_API_KEY = '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'; // for AI assistant
+
+// ═══════════════════════════════════════════════
+// CATEGORIES
+// ═══════════════════════════════════════════════
+const CATS = {
+  Groceries:    {icon:'🛒',color:'#00c87a',bg:'rgba(0,200,122,0.12)'},
+  Dining:       {icon:'🍽',color:'#f5a623',bg:'rgba(245,166,35,0.12)'},
+  Transport:    {icon:'🚗',color:'#00c8f0',bg:'rgba(0,200,240,0.12)'},
+  Health:       {icon:'💊',color:'#ff4560',bg:'rgba(255,69,96,0.12)'},
+  Shopping:     {icon:'🛍',color:'#9b6dff',bg:'rgba(155,109,255,0.12)'},
+  Utilities:    {icon:'⚡',color:'#f5a623',bg:'rgba(245,166,35,0.12)'},
+  Entertainment:{icon:'🎬',color:'#f06292',bg:'rgba(240,98,146,0.12)'},
+  Income:       {icon:'💰',color:'#00c87a',bg:'rgba(0,200,122,0.12)'},
+  Other:        {icon:'📋',color:'#7a8fa8',bg:'rgba(122,143,168,0.12)'},
+};
+const CAT_NAMES = Object.keys(CATS);
+const EUR = v => (v<0?'−':'')+'€'+Math.abs(v).toLocaleString('nl-NL',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+let DB = {
+  transactions: [],
+  investments: [
+    {id:1,ticker:'VWCE',name:'Vanguard All-World ETF',shares:45,price:128.40,cost:110.20,type:'ETF'},
+    {id:2,ticker:'ASML',name:'ASML Holding NV',shares:3,price:842.50,cost:790.00,type:'Stock'},
+    {id:3,ticker:'CSPX',name:'iShares Core S&P 500',shares:20,price:515.80,cost:480.00,type:'ETF'},
+    {id:4,ticker:'BTC-USD',name:'Bitcoin',shares:0.12,price:68400,cost:52000,type:'Crypto'},
+    {id:5,ticker:'ETH-USD',name:'Ethereum',shares:1.5,price:3200,cost:2800,type:'Crypto'},
+  ],
+  income: [
+    {id:1,source:'Salary',amount:4200,frequency:'Monthly',category:'Employment'},
+    {id:2,source:'Freelance Design',amount:850,frequency:'Variable',category:'Freelance'},
+    {id:3,source:'Dividend — VWCE',amount:120,frequency:'Quarterly',category:'Investment'},
+    {id:4,source:'Rental Income',amount:650,frequency:'Monthly',category:'Property'},
+  ],
+  budgets: [
+    {id:1,cat:'Groceries',limit:400,spent:0},
+    {id:2,cat:'Dining',limit:200,spent:0},
+    {id:3,cat:'Transport',limit:150,spent:0},
+    {id:4,cat:'Shopping',limit:300,spent:0},
+    {id:5,cat:'Entertainment',limit:100,spent:0},
+    {id:6,cat:'Utilities',limit:180,spent:0},
+  ],
+  networth:{
+    assets:[
+      {id:1,name:'Investment Portfolio',value:28640,color:'#00c87a'},
+      {id:2,name:'Savings Account',value:12000,color:'#00c8f0'},
+      {id:3,name:'Checking Account',value:3400,color:'#9b6dff'},
+      {id:4,name:'Property Value',value:180000,color:'#f5a623'},
+    ],
+    liabilities:[
+      {id:1,name:'Mortgage',value:142000,color:'#ff4560'},
+      {id:2,name:'Student Loan',value:8200,color:'#f5a623'},
+      {id:3,name:'Credit Card',value:1200,color:'#f06292'},  
+    ]
+  },
+  aiHistory:[],
+  livePrices:{},
+  lastTxCount: 0
+};
+
+let modalCallback = null;
+let chartInstances = {};
+let currentPage = 'dashboard';
+let nextId = 200;
+let pollInterval = null;
+
+// ═══════════════════════════════════════════════
+// PERSISTENCE (local)
+// ═══════════════════════════════════════════════
+function save(){try{localStorage.setItem('fv3',JSON.stringify({investments:DB.investments,income:DB.income,budgets:DB.budgets,networth:DB.networth,aiHistory:DB.aiHistory}));}catch(e){}}
+function load(){try{const d=localStorage.getItem('fv3');if(d){const p=JSON.parse(d);['investments','income','budgets','networth','aiHistory'].forEach(k=>{if(p[k])DB[k]=p[k];});}}catch(e){}}
+
+// ═══════════════════════════════════════════════
+// SERVER COMMUNICATION
+// ═══════════════════════════════════════════════
+async function fetchTransactions(){
+  try{
+    const r = await fetch(`${SERVER}/transactions`);
+    if(!r.ok) throw new Error();
+    const txs = await r.json();
+    DB.transactions = txs;
+    // Update budget spent from real transactions
+    DB.budgets.forEach(b=>{
+      b.spent = txs.filter(t=>t.category===b.cat&&t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0);
+    });
+    setServerStatus(true);
+
+    // New transaction arrived?
+    if(txs.length > DB.lastTxCount && DB.lastTxCount > 0){
+      const newest = txs[txs.length-1];
+      toast(`📱 New: ${newest.merchant} ${EUR(newest.amount)}`);
+      if(currentPage==='dashboard'||currentPage==='expenses') renderPage(currentPage);
+    }
+    DB.lastTxCount = txs.length;
+    return txs;
+  }catch(e){
+    setServerStatus(false);
+    return DB.transactions;
+  }
+}
+
+async function deleteServerTx(id){
+  try{await fetch(`${SERVER}/transactions/${id}`,{method:'DELETE'});}catch(e){}
+}
+
+async function addServerTx(tx){
+  try{
+    const r = await fetch(`${SERVER}/transactions`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(tx)});
+    return await r.json();
+  }catch(e){return null;}
+}
+
+function setServerStatus(online){
+  const dot = document.getElementById('sdot');
+  const txt = document.getElementById('stext');
+  if(!dot||!txt) return;
+  if(online){dot.className='sdot online';txt.textContent='Server online';}
+  else{dot.className='sdot offline';txt.textContent='Server offline';}
+}
+
+// ═══════════════════════════════════════════════
+// REAL-TIME PRICES (Yahoo Finance via allorigins proxy)
+// ═══════════════════════════════════════════════
+async function fetchLivePrices(){
+  const tickers = DB.investments.map(i=>i.ticker).join(',');
+  try{
+    const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${tickers}&fields=regularMarketPrice,regularMarketChangePercent`;
+    const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+    const r = await fetch(proxy);
+    const data = await r.json();
+    const parsed = JSON.parse(data.contents);
+    const quotes = parsed?.quoteResponse?.result || [];
+    quotes.forEach(q=>{
+      DB.livePrices[q.symbol] = {
+        price: q.regularMarketPrice,
+        change: q.regularMarketChangePercent
+      };
+    });
+    // Update investment prices
+    DB.investments.forEach(inv=>{
+      if(DB.livePrices[inv.ticker]){
+        inv.price = DB.livePrices[inv.ticker].price;
+        inv.liveChange = DB.livePrices[inv.ticker].change;
+      }
+    });
+    // Update portfolio net worth
+    const portVal = DB.investments.reduce((s,i)=>s+i.shares*i.price,0);
+    const portAsset = DB.networth.assets.find(a=>a.name==='Investment Portfolio');
+    if(portAsset) portAsset.value = Math.round(portVal);
+    save();
+    if(currentPage==='investments') renderPage('investments');
+  }catch(e){
+    console.log('Price fetch failed, using stored prices');
+  }
+}
+
+// ═══════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════
+function nav(page, btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
+  currentPage = page;
+  document.getElementById('pg-'+page).classList.add('active');
+  if(btn) btn.classList.add('active');
+  destroyCharts();
+  renderPage(page);
+}
+
+function renderPage(p){
+  const fns={dashboard:renderDashboard,expenses:renderExpenses,investments:renderInvestments,income:renderIncome,budget:renderBudget,networth:renderNetWorth,assistant:renderAssistant};
+  if(fns[p]) fns[p]();
+}
+
+// ═══════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════
+function renderDashboard(){
+  const txs = DB.transactions;
+  const spent = txs.filter(t=>t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0);
+  const earned = txs.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0);
+  const portVal = DB.investments.reduce((s,i)=>s+i.shares*i.price,0);
+  const portCost = DB.investments.reduce((s,i)=>s+i.shares*i.cost,0);
+  const portGain = portVal - portCost;
+  const totalA = DB.networth.assets.reduce((s,a)=>s+a.value,0);
+  const totalL = DB.networth.liabilities.reduce((s,l)=>s+l.value,0);
+  const net = totalA-totalL;
+  const monthlyInc = DB.income.reduce((s,i)=>s+(i.frequency==='Monthly'?i.amount:i.frequency==='Quarterly'?i.amount/3:i.amount/2),0);
+
+  document.getElementById('pg-dashboard').innerHTML=`
+  <div class="metrics">
+    <div class="mc green"><div class="mc-label">Monthly Income</div><div class="mc-val col-green">${EUR(monthlyInc)}</div><div class="mc-sub">${DB.income.length} sources</div></div>
+    <div class="mc red"><div class="mc-label">Expenses (live)</div><div class="mc-val col-red">${EUR(spent)}</div><div class="mc-sub">${txs.filter(t=>t.amount<0).length} transactions</div></div>
+    <div class="mc amber"><div class="mc-val col-accent" style="font-size:16px;margin-top:4px">${EUR(portVal)}</div><div class="mc-label" style="margin-top:4px">Portfolio (live)</div><div class="mc-sub ${portGain>=0?'col-green':'col-red'}">${portGain>=0?'▲':'▼'} ${EUR(Math.abs(portGain))}</div></div>
+    <div class="mc purple"><div class="mc-label">Net Worth</div><div class="mc-val col-accent">${EUR(net)}</div><div class="mc-sub col-green">Savings: ${earned>0?((earned-spent)/earned*100).toFixed(0):0}%</div></div>
+  </div>
+  <div class="two-col">
+    <div class="panel">
+      <div class="ph"><span class="pt">Spending by Category</span><span class="badge b-blue">Live</span></div>
+      <div class="pb"><div class="chart-wrap"><canvas id="catChart"></canvas></div></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="pt">Recent Transactions</span>${txs.length>0?`<span class="badge b-green">${txs.length} total</span>`:'<span class="badge b-amber">No transactions yet</span>'}</div>
+      <div class="txlist" style="max-height:220px">${txs.length===0?`<div style="padding:30px;text-align:center;color:var(--text3);font-size:12px">Send a WhatsApp message to add your first transaction!</div>`:[...txs].reverse().slice(0,6).map(t=>txRowHtml(t,false)).join('')}</div>
+    </div>
+  </div>
+  <div class="two-col full">
+    <div class="panel">
+      <div class="ph"><span class="pt">6-Month Cash Flow</span></div>
+      <div class="pb"><div class="chart-wrap" style="height:170px"><canvas id="flowChart"></canvas></div></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="pt">Budget Status</span></div>
+      <div class="pb">${DB.budgets.map(b=>{const pct=Math.min(b.spent/b.limit*100,100).toFixed(0);const col=b.spent>b.limit?'var(--red)':pct>80?'var(--amber)':'var(--green)';return`<div class="bitem"><div class="brow"><span class="bcat">${b.cat}</span><span class="bnums" style="color:${col}">${EUR(b.spent)}/${EUR(b.limit)}</span></div><div class="bbar"><div class="bfill" style="width:${pct}%;background:${col}"></div></div></div>`;}).join('')}</div>
+    </div>
+  </div>`;
+  setTimeout(initDashCharts,40);
+}
+
+function txRowHtml(t,showActions=false){
+  const c=CATS[t.category]||CATS.Other;
+  return`<div class="txrow">
+    <div class="tx-ico" style="background:${c.bg}">${c.icon}</div>
+    <div class="tx-info"><div class="tx-merchant">${t.merchant}</div><div class="tx-meta">${t.category}${t.note?' · '+t.note:''}${t.source==='whatsapp'?' · 📱':''}</div></div>
+    <div class="tx-date">${t.date||''}</div>
+    <div class="tx-amount ${t.amount<0?'col-red':'col-green'}">${EUR(t.amount)}</div>
+    ${showActions?`<div class="tx-actions">
+      <button class="btn btn-icon btn-sm" onclick="editTx(${t.id})">✎</button>
+      <button class="btn btn-icon btn-sm btn-red" onclick="deleteTx(${t.id})">✕</button>
+    </div>`:''}
+  </div>`;
+}
+
+function initDashCharts(){
+  const g='rgba(255,255,255,0.04)',tk='#3d4f65',base={responsive:true,maintainAspectRatio:false};
+  const txs=DB.transactions.filter(t=>t.amount<0),cats={};
+  txs.forEach(t=>{cats[t.category]=(cats[t.category]||0)+Math.abs(t.amount);});
+
+  if(document.getElementById('catChart')){
+    if(Object.keys(cats).length===0){
+      const ctx=document.getElementById('catChart').getContext('2d');
+      ctx.fillStyle='#3d4f65';ctx.font='12px IBM Plex Sans';ctx.textAlign='center';
+      ctx.fillText('No transactions yet — send a WhatsApp message!',ctx.canvas.width/2,ctx.canvas.height/2);
+    } else {
+      const labels=Object.keys(cats),colors=labels.map(l=>(CATS[l]||CATS.Other).color);
+      chartInstances.cat=new Chart(document.getElementById('catChart'),{type:'bar',data:{labels,datasets:[{data:Object.values(cats),backgroundColor:colors.map(c=>c+'28'),borderColor:colors,borderWidth:1.5,borderRadius:4}]},options:{...base,plugins:{legend:{display:false}},scales:{x:{ticks:{color:tk,font:{size:9}},grid:{color:g}},y:{ticks:{color:tk,font:{size:9},callback:v=>'€'+v},grid:{color:g}}}}});
+    }
+  }
+  if(document.getElementById('flowChart')){
+    const months=['Oct','Nov','Dec','Jan','Feb','Mar'],inc=[4800,5200,5800,4200,5820,5820],exp=[3200,3800,4100,3400,3900,4100];
+    chartInstances.flow=new Chart(document.getElementById('flowChart'),{type:'line',data:{labels:months,datasets:[{label:'Income',data:inc,borderColor:'#00c87a',backgroundColor:'rgba(0,200,122,0.06)',tension:.4,fill:true,pointRadius:3,pointBackgroundColor:'#00c87a'},{label:'Expenses',data:exp,borderColor:'#ff4560',backgroundColor:'rgba(255,69,96,0.06)',tension:.4,fill:true,pointRadius:3,pointBackgroundColor:'#ff4560'}]},options:{...base,plugins:{legend:{labels:{color:'#7a8fa8',font:{size:10}}}},scales:{x:{ticks:{color:tk,font:{size:9}},grid:{color:g}},y:{ticks:{color:tk,font:{size:9},callback:v=>'€'+v},grid:{color:g}}}}});
+  }
+}
+
+// ═══════════════════════════════════════════════
+// EXPENSES
+// ═══════════════════════════════════════════════
+function renderExpenses(){
+  const txs=[...DB.transactions].reverse();
+  document.getElementById('pg-expenses').innerHTML=`
+  <div class="two-col">
+    <div class="panel">
+      <div class="ph"><span class="pt">All Transactions <span class="badge b-blue">${txs.length}</span></span><button class="btn btn-primary btn-sm" onclick="openAddTx()">+ Add Manual</button></div>
+      <div class="txlist" style="max-height:480px">${txs.length===0?`<div style="padding:40px;text-align:center;color:var(--text3);font-size:12px">No transactions yet.<br><br>Send a WhatsApp message to your Twilio number to add one automatically!</div>`:txs.map(t=>txRowHtml(t,true)).join('')}</div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="pt">Category Breakdown</span></div>
+      <div class="pb"><div class="chart-wrap" style="height:260px"><canvas id="donutChart"></canvas></div></div>
+    </div>
+  </div>`;
+  setTimeout(()=>{
+    const base={responsive:true,maintainAspectRatio:false};
+    const txs2=DB.transactions.filter(t=>t.amount<0),cats={};
+    txs2.forEach(t=>{cats[t.category]=(cats[t.category]||0)+Math.abs(t.amount);});
+    if(document.getElementById('donutChart')&&Object.keys(cats).length>0){
+      const labels=Object.keys(cats),colors=labels.map(l=>(CATS[l]||CATS.Other).color);
+      chartInstances.donut=new Chart(document.getElementById('donutChart'),{type:'doughnut',data:{labels,datasets:[{data:Object.values(cats),backgroundColor:colors.map(c=>c+'bb'),borderColor:'#07090d',borderWidth:2}]},options:{...base,plugins:{legend:{position:'bottom',labels:{color:'#7a8fa8',font:{size:10},padding:10}}},cutout:'65%'}});
+    }
+  },40);
+}
+
+function openAddTx(){openModal('Add Transaction',txFormHtml(),async()=>{const t=gatherTxForm();if(!t)return;const res=await addServerTx(t);if(res){toast('✓ Transaction added');await fetchTransactions();renderPage('expenses');}else{const tx={id:nextId++,...t};DB.transactions.push(tx);renderPage('expenses');}});}
+async function editTx(tid){
+  const t=DB.transactions.find(x=>x.id===tid);if(!t)return;
+  openModal('Edit Transaction',txFormHtml(t),async()=>{
+    const u=gatherTxForm();if(!u)return;
+    await deleteServerTx(tid);
+    const res=await addServerTx({...u,id:tid});
+    await fetchTransactions();
+    toast('✓ Updated');renderPage('expenses');
+  });
+}
+async function deleteTx(tid){
+  await deleteServerTx(tid);
+  await fetchTransactions();
+  toast('Deleted','amber');
+  renderPage('expenses');
+}
+function txFormHtml(t={}){return`
+  <div class="form-grid">
+    <div class="form-row"><label class="form-label">Merchant</label><input class="form-input" id="fm_merchant" value="${t.merchant||''}" placeholder="Albert Heijn"/></div>
+    <div class="form-row"><label class="form-label">Amount (negative = expense)</label><input class="form-input" id="fm_amount" type="number" step="0.01" value="${t.amount||''}" placeholder="-42.50"/></div>
+    <div class="form-row"><label class="form-label">Category</label><select class="form-select" id="fm_cat">${CAT_NAMES.map(c=>`<option value="${c}" ${t.category===c?'selected':''}>${c}</option>`).join('')}</select></div>
+    <div class="form-row"><label class="form-label">Date</label><input class="form-input" id="fm_date" type="date" value="${t.date||new Date().toISOString().slice(0,10)}"/></div>
+  </div>
+  <div class="form-row"><label class="form-label">Note</label><input class="form-input" id="fm_note" value="${t.note||''}" placeholder="Optional"/></div>`;}
+function gatherTxForm(){
+  const m=document.getElementById('fm_merchant')?.value.trim();
+  const a=parseFloat(document.getElementById('fm_amount')?.value);
+  const c=document.getElementById('fm_cat')?.value;
+  const d=document.getElementById('fm_date')?.value;
+  const n=document.getElementById('fm_note')?.value.trim();
+  if(!m||isNaN(a)){toast('Merchant and amount required','red');return null;}
+  return{merchant:m,amount:a,category:c,date:d,note:n};
+}
+
+// ═══════════════════════════════════════════════
+// INVESTMENTS — REAL-TIME PRICES
+// ═══════════════════════════════════════════════
+function renderInvestments(){
+  const total=DB.investments.reduce((s,i)=>s+i.shares*i.price,0);
+  const cost=DB.investments.reduce((s,i)=>s+i.shares*i.cost,0);
+  const gain=total-cost,gPct=(gain/cost*100).toFixed(1);
+  document.getElementById('pg-investments').innerHTML=`
+  <div class="metrics" style="grid-template-columns:repeat(3,1fr);margin-bottom:12px">
+    <div class="mc green"><div class="mc-label">Portfolio Value <span class="price-dot" style="display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--green);margin-left:4px"></span></div><div class="mc-val col-accent">${EUR(total)}</div><div class="mc-sub">Live prices</div></div>
+    <div class="mc ${gain>=0?'green':'red'}"><div class="mc-label">Unrealised P&L</div><div class="mc-val ${gain>=0?'col-green':'col-red'}">${gain>=0?'+':''}${EUR(gain)}</div><div class="mc-sub">${gPct}% return</div></div>
+    <div class="mc blue"><div class="mc-label">Cost Basis</div><div class="mc-val">${EUR(cost)}</div><div class="mc-sub">${DB.investments.length} positions</div></div>
+  </div>
+  <div class="two-col">
+    <div class="panel">
+      <div class="ph">
+        <span class="pt">Holdings</span>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button class="btn btn-sm" onclick="fetchLivePrices().then(()=>renderPage('investments'))">↻ Refresh Prices</button>
+          <button class="btn btn-primary btn-sm" onclick="openAddInv()">+ Add</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+      <table class="etable">
+        <thead><tr><th>Ticker</th><th>Name</th><th>Type</th><th>Shares</th><th>Cost</th><th>Live Price</th><th>Value</th><th>P&L</th><th>24h</th><th></th></tr></thead>
+        <tbody>${DB.investments.map(i=>{
+          const val=i.shares*i.price,pl=val-(i.shares*i.cost),plp=(pl/(i.shares*i.cost)*100).toFixed(1);
+          const chg=i.liveChange;
+          return`<tr>
+            <td><span class="badge b-blue" style="font-family:var(--mono)">${i.ticker}</span></td>
+            <td style="color:var(--text2);font-size:11px">${i.name}</td>
+            <td><span class="badge ${i.type==='Crypto'?'b-purple':i.type==='ETF'?'b-blue':'b-green'}">${i.type}</span></td>
+            <td class="mono">${i.shares}</td>
+            <td class="mono">${EUR(i.cost)}</td>
+            <td class="mono">${EUR(i.price)} ${DB.livePrices[i.ticker]?'<span class="price-dot"></span>':''}</td>
+            <td class="mono">${EUR(val)}</td>
+            <td class="mono ${pl>=0?'col-green':'col-red'}">${pl>=0?'+':''}${EUR(pl)}<br><span style="font-size:9px;opacity:.7">${plp}%</span></td>
+            <td class="mono ${chg>=0?'col-green':'col-red'}" style="font-size:11px">${chg!=null?(chg>=0?'+':'')+chg.toFixed(2)+'%':'—'}</td>
+            <td><div class="actions"><button class="btn btn-icon btn-sm" onclick="editInv(${i.id})">✎</button><button class="btn btn-icon btn-sm btn-red" onclick="deleteInv(${i.id})">✕</button></div></td>
+          </tr>`;}).join('')}
+        </tbody>
+      </table></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="pt">Allocation</span></div>
+      <div class="pb"><div class="chart-wrap" style="height:240px"><canvas id="allocChart"></canvas></div></div>
+    </div>
+  </div>`;
+  setTimeout(()=>{
+    const base={responsive:true,maintainAspectRatio:false};
+    const labels=DB.investments.map(i=>i.ticker),data=DB.investments.map(i=>+(i.shares*i.price).toFixed(2));
+    const colors=['#00c8f0','#00c87a','#9b6dff','#f5a623','#ff4560','#f06292'];
+    if(document.getElementById('allocChart'))
+      chartInstances.alloc=new Chart(document.getElementById('allocChart'),{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors.map(c=>c+'bb'),borderColor:'#07090d',borderWidth:2}]},options:{...base,plugins:{legend:{position:'bottom',labels:{color:'#7a8fa8',font:{size:10}}}},cutout:'60%'}});
+  },40);
+}
+
+function openAddInv(){openModal('Add Position',invFormHtml(),()=>{const i=gatherInvForm();if(!i)return;DB.investments.push({id:nextId++,...i});save();toast('✓ Added');fetchLivePrices().then(()=>renderPage('investments'));});}
+function editInv(iid){const i=DB.investments.find(x=>x.id===iid);if(!i)return;openModal('Edit Position',invFormHtml(i),()=>{const u=gatherInvForm();if(!u)return;Object.assign(i,u);save();toast('✓ Updated');fetchLivePrices().then(()=>renderPage('investments'));});}
+function deleteInv(iid){DB.investments=DB.investments.filter(i=>i.id!==iid);save();toast('Deleted','amber');renderPage('investments');}
+function invFormHtml(i={}){return`
+  <div class="form-grid">
+    <div class="form-row"><label class="form-label">Ticker (Yahoo Finance)</label><input class="form-input" id="iv_ticker" value="${i.ticker||''}" placeholder="VWCE / BTC-USD"/></div>
+    <div class="form-row"><label class="form-label">Full Name</label><input class="form-input" id="iv_name" value="${i.name||''}" placeholder="Vanguard All-World"/></div>
+    <div class="form-row"><label class="form-label">Type</label><select class="form-select" id="iv_type"><option ${i.type==='ETF'?'selected':''}>ETF</option><option ${i.type==='Stock'?'selected':''}>Stock</option><option ${i.type==='Crypto'?'selected':''}>Crypto</option><option ${i.type==='Bond'?'selected':''}>Bond</option></select></div>
+    <div class="form-row"><label class="form-label">Shares</label><input class="form-input" id="iv_shares" type="number" step="0.0001" value="${i.shares||''}" placeholder="10"/></div>
+    <div class="form-row"><label class="form-label">Current Price (€)</label><input class="form-input" id="iv_price" type="number" step="0.01" value="${i.price||''}" placeholder="128.40"/></div>
+    <div class="form-row"><label class="form-label">Avg Cost Basis (€)</label><input class="form-input" id="iv_cost" type="number" step="0.01" value="${i.cost||''}" placeholder="110.20"/></div>
+  </div>
+  <div style="font-size:11px;color:var(--text2);margin-top:8px">Use Yahoo Finance ticker symbols: stocks (ASML), ETFs (VWCE), crypto (BTC-USD, ETH-USD)</div>`;}
+function gatherInvForm(){
+  const t=document.getElementById('iv_ticker')?.value.trim().toUpperCase();
+  const n=document.getElementById('iv_name')?.value.trim();
+  const ty=document.getElementById('iv_type')?.value;
+  const s=parseFloat(document.getElementById('iv_shares')?.value);
+  const p=parseFloat(document.getElementById('iv_price')?.value);
+  const c=parseFloat(document.getElementById('iv_cost')?.value);
+  if(!t||isNaN(s)||isNaN(p)||isNaN(c)){toast('All fields required','red');return null;}
+  return{ticker:t,name:n||t,type:ty,shares:s,price:p,cost:c};
+}
+
+// ═══════════════════════════════════════════════
+// INCOME
+// ═══════════════════════════════════════════════
+function renderIncome(){
+  const monthly=DB.income.reduce((s,i)=>s+(i.frequency==='Monthly'?i.amount:i.frequency==='Quarterly'?i.amount/3:i.amount/2),0);
+  document.getElementById('pg-income').innerHTML=`
+  <div class="metrics" style="grid-template-columns:repeat(3,1fr);margin-bottom:12px">
+    <div class="mc green"><div class="mc-label">Monthly (est.)</div><div class="mc-val col-green">${EUR(monthly)}</div></div>
+    <div class="mc green"><div class="mc-label">Annual (est.)</div><div class="mc-val col-green">${EUR(monthly*12)}</div></div>
+    <div class="mc"><div class="mc-label">Sources</div><div class="mc-val col-accent">${DB.income.length}</div></div>
+  </div>
+  <div class="two-col">
+    <div class="panel">
+      <div class="ph"><span class="pt">Income Sources</span><button class="btn btn-primary btn-sm" onclick="openAddIncome()">+ Add</button></div>
+      <table class="etable">
+        <thead><tr><th>Source</th><th>Category</th><th>Frequency</th><th>Amount</th><th></th></tr></thead>
+        <tbody>${DB.income.map(i=>`<tr>
+          <td style="font-weight:500">${i.source}</td>
+          <td><span class="badge b-green">${i.category}</span></td>
+          <td style="color:var(--text2);font-size:11px">${i.frequency}</td>
+          <td class="mono col-green">${EUR(i.amount)}</td>
+          <td><div class="actions"><button class="btn btn-icon btn-sm" onclick="editIncome(${i.id})">✎</button><button class="btn btn-icon btn-sm btn-red" onclick="deleteIncome(${i.id})">✕</button></div></td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="pt">By Category</span></div>
+      <div class="pb"><div class="chart-wrap" style="height:240px"><canvas id="incChart"></canvas></div></div>
+    </div>
+  </div>`;
+  setTimeout(()=>{
+    const base={responsive:true,maintainAspectRatio:false};
+    const cats={};DB.income.forEach(i=>{cats[i.category]=(cats[i.category]||0)+i.amount;});
+    const labels=Object.keys(cats),colors=['#00c87a','#00c8f0','#9b6dff','#f5a623'];
+    if(document.getElementById('incChart'))
+      chartInstances.inc=new Chart(document.getElementById('incChart'),{type:'doughnut',data:{labels,datasets:[{data:Object.values(cats),backgroundColor:colors.map(c=>c+'bb'),borderColor:'#07090d',borderWidth:2}]},options:{...base,plugins:{legend:{position:'bottom',labels:{color:'#7a8fa8',font:{size:10}}}},cutout:'65%'}});
+  },40);
+}
+function openAddIncome(){openModal('Add Income',incFormHtml(),()=>{const i=gatherIncForm();if(!i)return;DB.income.push({id:nextId++,...i});save();toast('✓ Added');renderPage('income');});}
+function editIncome(iid){const i=DB.income.find(x=>x.id===iid);if(!i)return;openModal('Edit Income',incFormHtml(i),()=>{const u=gatherIncForm();if(!u)return;Object.assign(i,u);save();toast('✓ Updated');renderPage('income');});}
+function deleteIncome(iid){DB.income=DB.income.filter(i=>i.id!==iid);save();toast('Deleted','amber');renderPage('income');}
+function incFormHtml(i={}){return`<div class="form-grid"><div class="form-row"><label class="form-label">Source</label><input class="form-input" id="in_src" value="${i.source||''}" placeholder="Salary"/></div><div class="form-row"><label class="form-label">Amount (€)</label><input class="form-input" id="in_amt" type="number" step="0.01" value="${i.amount||''}" placeholder="3000"/></div><div class="form-row"><label class="form-label">Frequency</label><select class="form-select" id="in_freq"><option ${i.frequency==='Monthly'?'selected':''}>Monthly</option><option ${i.frequency==='Quarterly'?'selected':''}>Quarterly</option><option ${i.frequency==='Annual'?'selected':''}>Annual</option><option ${i.frequency==='Variable'?'selected':''}>Variable</option></select></div><div class="form-row"><label class="form-label">Category</label><input class="form-input" id="in_cat" value="${i.category||''}" placeholder="Employment"/></div></div>`;}
+function gatherIncForm(){const s=document.getElementById('in_src')?.value.trim();const a=parseFloat(document.getElementById('in_amt')?.value);const f=document.getElementById('in_freq')?.value;const c=document.getElementById('in_cat')?.value.trim();if(!s||isNaN(a)){toast('Name and amount required','red');return null;}return{source:s,amount:a,frequency:f,category:c||'Other'};}
+
+// ═══════════════════════════════════════════════
+// BUDGET
+// ═══════════════════════════════════════════════
+function renderBudget(){
+  document.getElementById('pg-budget').innerHTML=`
+  <div class="two-col">
+    <div class="panel">
+      <div class="ph"><span class="pt">Budget vs Actual (live)</span><button class="btn btn-primary btn-sm" onclick="openAddBudget()">+ Add</button></div>
+      <div class="pb">${DB.budgets.map(b=>{
+        const pct=Math.min(b.spent/b.limit*100,100).toFixed(0);const over=b.spent>b.limit;
+        const col=over?'var(--red)':pct>80?'var(--amber)':'var(--green)';
+        return`<div class="bitem" style="display:flex;align-items:center;gap:10px">
+          <div style="flex:1"><div class="brow"><span class="bcat">${b.cat}</span><span class="bnums" style="color:${col}">${EUR(b.spent)} / ${EUR(b.limit)} ${over?'⚠ OVER':''}</span></div><div class="bbar"><div class="bfill" style="width:${pct}%;background:${col}"></div></div></div>
+          <div style="display:flex;gap:4px"><button class="btn btn-icon btn-sm" onclick="editBudget(${b.id})">✎</button><button class="btn btn-icon btn-sm btn-red" onclick="deleteBudget(${b.id})">✕</button></div>
+        </div>`;}).join('')}</div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="pt">Overview</span></div>
+      <div class="pb"><div class="chart-wrap" style="height:290px"><canvas id="budgChart"></canvas></div></div>
+    </div>
+  </div>`;
+  setTimeout(()=>{
+    const g='rgba(255,255,255,0.04)',tk='#3d4f65',base={responsive:true,maintainAspectRatio:false};
+    const labels=DB.budgets.map(b=>b.cat),rem=DB.budgets.map(b=>Math.max(0,b.limit-b.spent)),over=DB.budgets.map(b=>Math.max(0,b.spent-b.limit));
+    if(document.getElementById('budgChart'))
+      chartInstances.budg=new Chart(document.getElementById('budgChart'),{type:'bar',data:{labels,datasets:[{label:'Remaining',data:rem,backgroundColor:'rgba(0,200,122,0.35)',borderColor:'#00c87a',borderWidth:1.5,borderRadius:4},{label:'Over Budget',data:over,backgroundColor:'rgba(255,69,96,0.35)',borderColor:'#ff4560',borderWidth:1.5,borderRadius:4}]},options:{...base,plugins:{legend:{labels:{color:'#7a8fa8',font:{size:10}}}},scales:{x:{ticks:{color:tk,font:{size:9}},grid:{color:g}},y:{ticks:{color:tk,font:{size:9},callback:v=>'€'+v},grid:{color:g}}}}});
+  },40);
+}
+function openAddBudget(){openModal('Add Budget',budgetFormHtml(),()=>{const b=gatherBudgetForm();if(!b)return;DB.budgets.push({id:nextId++,...b});save();toast('✓ Added');renderPage('budget');});}
+function editBudget(bid){const b=DB.budgets.find(x=>x.id===bid);if(!b)return;openModal('Edit Budget',budgetFormHtml(b),()=>{const u=gatherBudgetForm();if(!u)return;Object.assign(b,u);save();toast('✓ Updated');renderPage('budget');});}
+function deleteBudget(bid){DB.budgets=DB.budgets.filter(b=>b.id!==bid);save();toast('Deleted','amber');renderPage('budget');}
+function budgetFormHtml(b={}){return`<div class="form-grid"><div class="form-row"><label class="form-label">Category</label><select class="form-select" id="bg_cat">${CAT_NAMES.filter(c=>c!=='Income').map(c=>`<option value="${c}" ${b.cat===c?'selected':''}>${c}</option>`).join('')}</select></div><div class="form-row"><label class="form-label">Monthly Limit (€)</label><input class="form-input" id="bg_limit" type="number" step="1" value="${b.limit||''}" placeholder="300"/></div></div>`;}
+function gatherBudgetForm(){const c=document.getElementById('bg_cat')?.value;const l=parseFloat(document.getElementById('bg_limit')?.value);if(!c||isNaN(l)){toast('Required','red');return null;}return{cat:c,limit:l,spent:0};}
+
+// ═══════════════════════════════════════════════
+// NET WORTH
+// ═══════════════════════════════════════════════
+function renderNetWorth(){
+  const{assets,liabilities}=DB.networth;
+  const totalA=assets.reduce((s,a)=>s+a.value,0),totalL=liabilities.reduce((s,l)=>s+l.value,0),net=totalA-totalL;
+  document.getElementById('pg-networth').innerHTML=`
+  <div class="metrics" style="grid-template-columns:repeat(3,1fr);margin-bottom:12px">
+    <div class="mc green"><div class="mc-label">Total Assets</div><div class="mc-val col-green">${EUR(totalA)}</div></div>
+    <div class="mc red"><div class="mc-label">Total Liabilities</div><div class="mc-val col-red">${EUR(totalL)}</div></div>
+    <div class="mc blue"><div class="mc-label">Net Worth</div><div class="mc-val col-accent">${EUR(net)}</div></div>
+  </div>
+  <div class="two-col">
+    <div class="panel">
+      <div class="ph"><span class="pt">Assets</span><button class="btn btn-primary btn-sm" onclick="openAddNW('asset')">+ Add Asset</button></div>
+      <div class="pb">
+        <div class="nw-section-label">Assets</div>
+        ${assets.map(a=>`<div class="nw-row"><span class="nw-name">${a.name}</span><div class="nw-bar"><div class="nw-fill" style="width:${(a.value/totalA*100).toFixed(0)}%;background:${a.color}"></div></div><span class="nw-val" style="color:${a.color}">${EUR(a.value)}</span><button class="btn btn-icon btn-sm" onclick="editNW('asset',${a.id})">✎</button><button class="btn btn-icon btn-sm btn-red" onclick="deleteNW('asset',${a.id})">✕</button></div>`).join('')}
+        <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center"><span class="pt">Liabilities</span><button class="btn btn-primary btn-sm" onclick="openAddNW('liability')">+ Add Liability</button></div>
+        <div class="nw-section-label" style="margin-top:8px">Liabilities</div>
+        ${liabilities.map(l=>`<div class="nw-row"><span class="nw-name">${l.name}</span><div class="nw-bar"><div class="nw-fill" style="width:${(l.value/totalL*100).toFixed(0)}%;background:${l.color}"></div></div><span class="nw-val" style="color:${l.color}">${EUR(l.value)}</span><button class="btn btn-icon btn-sm" onclick="editNW('liability',${l.id})">✎</button><button class="btn btn-icon btn-sm btn-red" onclick="deleteNW('liability',${l.id})">✕</button></div>`).join('')}
+        <div class="nw-total"><span class="nw-total-label">Net Worth</span><span class="nw-total-val">${EUR(net)}</span></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="pt">Asset Allocation</span></div>
+      <div class="pb"><div class="chart-wrap" style="height:260px"><canvas id="nwChart"></canvas></div></div>
+    </div>
+  </div>`;
+  setTimeout(()=>{
+    const base={responsive:true,maintainAspectRatio:false};
+    if(document.getElementById('nwChart'))
+      chartInstances.nw=new Chart(document.getElementById('nwChart'),{type:'doughnut',data:{labels:assets.map(a=>a.name),datasets:[{data:assets.map(a=>a.value),backgroundColor:assets.map(a=>a.color+'bb'),borderColor:'#07090d',borderWidth:2}]},options:{...base,plugins:{legend:{position:'bottom',labels:{color:'#7a8fa8',font:{size:10}}}},cutout:'60%'}});
+  },40);
+}
+function openAddNW(type){openModal(`Add ${type==='asset'?'Asset':'Liability'}`,nwFormHtml(type),()=>{const n=gatherNWForm();if(!n)return;DB.networth[type==='asset'?'assets':'liabilities'].push({id:nextId++,...n});save();toast('✓ Added');renderPage('networth');});}
+function editNW(type,eid){const arr=DB.networth[type==='asset'?'assets':'liabilities'];const e=arr.find(x=>x.id===eid);if(!e)return;openModal(`Edit`,nwFormHtml(type,e),()=>{const u=gatherNWForm();if(!u)return;Object.assign(e,u);save();toast('✓ Updated');renderPage('networth');});}
+function deleteNW(type,eid){const k=type==='asset'?'assets':'liabilities';DB.networth[k]=DB.networth[k].filter(e=>e.id!==eid);save();toast('Deleted','amber');renderPage('networth');}
+function nwFormHtml(type,e={}){const colors=['#00c87a','#00c8f0','#9b6dff','#f5a623','#ff4560','#f06292'];return`<div class="form-grid"><div class="form-row"><label class="form-label">Name</label><input class="form-input" id="nw_name" value="${e.name||''}" placeholder="${type==='asset'?'Savings Account':'Mortgage'}"/></div><div class="form-row"><label class="form-label">Value (€)</label><input class="form-input" id="nw_val" type="number" step="1" value="${e.value||''}" placeholder="10000"/></div><div class="form-row"><label class="form-label">Colour</label><select class="form-select" id="nw_col">${colors.map(c=>`<option value="${c}" ${e.color===c?'selected':''}>${c}</option>`).join('')}</select></div></div>`;}
+function gatherNWForm(){const n=document.getElementById('nw_name')?.value.trim();const v=parseFloat(document.getElementById('nw_val')?.value);const c=document.getElementById('nw_col')?.value;if(!n||isNaN(v)){toast('Required','red');return null;}return{name:n,value:v,color:c};}
+
+// ═══════════════════════════════════════════════
+// AI ASSISTANT
+// ═══════════════════════════════════════════════
+function renderAssistant(){
+  document.getElementById('pg-assistant').innerHTML=`
+  <div class="two-col">
+    <div class="panel" style="display:flex;flex-direction:column">
+      <div class="ph"><span class="pt">AI Financial Assistant</span><span class="badge b-blue">Claude Powered</span></div>
+      <div class="ai-chat">
+        <div class="ai-messages" id="aiMessages">
+          <div class="ai-msg bot"><div class="ai-label-sm">FINVAULT AI</div>Hello! I have access to all your live financial data. Ask me anything about your spending, portfolio, budget, or net worth.</div>
+          ${DB.aiHistory.map(m=>`<div class="ai-msg ${m.role==='user'?'user':'bot'}">${m.role==='bot'?'<div class="ai-label-sm">FINVAULT AI</div>':''}<div style="white-space:pre-wrap">${m.content}</div></div>`).join('')}
+        </div>
+        <div class="ai-quick">
+          <button class="ai-chip" onclick="askAI('Generate a monthly summary for this month')">Monthly summary</button>
+          <button class="ai-chip" onclick="askAI('Which categories am I overspending in?')">Overspending</button>
+          <button class="ai-chip" onclick="askAI('Suggest budget adjustments based on my spending')">Budget tips</button>
+          <button class="ai-chip" onclick="askAI('How is my investment portfolio performing?')">Portfolio review</button>
+        </div>
+        <div class="ai-input-row">
+          <input class="ai-text-input" id="aiInput" placeholder="Ask anything about your finances…" onkeydown="if(event.key==='Enter')sendAI()"/>
+          <button class="ai-send-btn" id="aiBtn" onclick="sendAI()">Send</button>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div class="panel"><div class="ph"><span class="pt">Live Snapshot</span></div><div class="pb" style="font-size:12px">${buildSnapshot()}</div></div>
+    </div>
+  </div>`;
+  setTimeout(()=>{const el=document.getElementById('aiMessages');if(el)el.scrollTop=el.scrollHeight;},50);
+}
+
+function buildSnapshot(){
+  const txs=DB.transactions,spent=txs.filter(t=>t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0);
+  const portVal=DB.investments.reduce((s,i)=>s+i.shares*i.price,0);
+  const net=DB.networth.assets.reduce((s,a)=>s+a.value,0)-DB.networth.liabilities.reduce((s,l)=>s+l.value,0);
+  const overBudget=DB.budgets.filter(b=>b.spent>b.limit);
+  return[['Transactions',txs.length,'col-accent'],['Total Spent',EUR(spent),'col-red'],['Portfolio',EUR(portVal),'col-accent'],['Net Worth',EUR(net),'col-green'],['Over-budget',overBudget.length,overBudget.length>0?'col-red':'col-green']].map(([k,v,c])=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)"><span style="color:var(--text2)">${k}</span><span class="${c}" style="font-family:var(--mono);font-size:11px">${v}</span></div>`).join('');
+}
+
+async function sendAI(){const input=document.getElementById('aiInput');const msg=input?.value.trim();if(!msg)return;input.value='';await askAI(msg);}
+
+async function askAI(msg){
+  DB.aiHistory.push({role:'user',content:msg});
+  renderAssistant();
+  const btn=document.getElementById('aiBtn');
+  if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner"></span>';}
+  const txs=DB.transactions;
+  const cats=txs.filter(t=>t.amount<0).reduce((a,t)=>{a[t.category]=(a[t.category]||0)+Math.abs(t.amount);return a;},{});
+  const portVal=DB.investments.reduce((s,i)=>s+i.shares*i.price,0);
+  const portCost=DB.investments.reduce((s,i)=>s+i.shares*i.cost,0);
+  const totalA=DB.networth.assets.reduce((s,a)=>s+a.value,0);
+  const totalL=DB.networth.liabilities.reduce((s,l)=>s+l.value,0);
+  const monthly=DB.income.reduce((s,i)=>s+(i.frequency==='Monthly'?i.amount:i.frequency==='Quarterly'?i.amount/3:i.amount/2),0);
+  const ctx=`You are a personal finance AI. User data:
+TRANSACTIONS (${txs.length}): ${txs.slice(-10).map(t=>`${t.date} ${t.merchant} €${t.amount} (${t.category})`).join(', ')}
+SPENDING BY CATEGORY: ${JSON.stringify(cats)}
+PORTFOLIO: value €${portVal.toFixed(0)}, cost €${portCost.toFixed(0)}, gain €${(portVal-portCost).toFixed(0)}
+INVESTMENTS: ${DB.investments.map(i=>`${i.ticker} ${i.shares}x@€${i.price}${i.liveChange!=null?' ('+i.liveChange.toFixed(1)+'% today)':''}`).join(', ')}
+BUDGET: ${DB.budgets.map(b=>`${b.cat} €${b.spent}/€${b.limit}${b.spent>b.limit?' OVER':''}`).join(', ')}
+NET WORTH: assets €${totalA}, liabilities €${totalL}, net €${(totalA-totalL).toFixed(0)}
+MONTHLY INCOME: €${monthly.toFixed(0)}
+Be concise, specific, use €. Today: ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}.`;
+  try{
+    const headers={'Content-Type':'application/json'};
+    if(CLAUDE_API_KEY&&CLAUDE_API_KEY!=='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')headers['x-api-key']=CLAUDE_API_KEY;
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers,body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:600,system:ctx,messages:[{role:'user',content:msg}]})});
+    const data=await res.json();
+    const reply=data.content?.filter(c=>c.type==='text').map(c=>c.text).join('')||'Sorry, could not process that.';
+    DB.aiHistory.push({role:'bot',content:reply});
+  }catch(e){
+    DB.aiHistory.push({role:'bot',content:'Add your Claude API key in the CONFIG section at the top of this file to enable AI responses.'});
+  }
+  save();renderAssistant();
+  if(btn){btn.disabled=false;btn.innerHTML='Send';}
+}
+
+// ═══════════════════════════════════════════════
+// MODAL
+// ═══════════════════════════════════════════════
+function openModal(title,body,onSave){document.getElementById('modalTitle').textContent=title;document.getElementById('modalBody').innerHTML=body;document.getElementById('modalOverlay').classList.add('open');modalCallback=onSave;setTimeout(()=>document.querySelector('.modal .form-input')?.focus(),100);}
+function closeModal(){document.getElementById('modalOverlay').classList.remove('open');modalCallback=null;}
+function submitModal(){if(modalCallback)modalCallback();}
+
+// ═══════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════
+function destroyCharts(){Object.values(chartInstances).forEach(c=>{try{c.destroy();}catch(e){}});chartInstances={};}
+function toast(msg,type='green'){const el=document.getElementById('toast');el.textContent=msg;el.style.borderColor=type==='red'?'var(--red)':type==='amber'?'var(--amber)':'var(--green)';el.style.color=type==='red'?'var(--red)':type==='amber'?'var(--amber)':'var(--green)';el.style.display='block';setTimeout(()=>el.style.display='none',2800);}
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+setInterval(()=>{const el=document.getElementById('clock');if(el)el.textContent=new Date().toLocaleTimeString('nl-NL',{hour12:false});},1000);
+
+load();
+
+// Initial data fetch
+fetchTransactions().then(()=>renderPage('dashboard'));
+
+// Fetch live prices
+fetchLivePrices();
+
+// Poll for new WhatsApp transactions every 5 seconds
+pollInterval = setInterval(fetchTransactions, 5000);
+
+// Refresh prices every 60 seconds
+setInterval(fetchLivePrices, 60000);
+</script>
+</body>
+</html>
