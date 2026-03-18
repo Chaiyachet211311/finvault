@@ -101,8 +101,26 @@ async function saveDB() {
   }
 }
 
-let db = loadDB();
-console.log(`📂 Database loaded — ${db.transactions.length} transactions`);
+// let db = loadDB();
+// console.log(`📂 Database loaded — ${db.transactions.length} transactions`);
+
+let db = { transactions: [], investments: [], income: [], budgets: [], networth: { assets: [], liabilities: [] } };
+
+async function startServer() {
+  const savedData = await loadDB();
+  if (savedData && savedData.transactions) {
+    db = savedData;
+  }
+  console.log(`📂 Database loaded — ${db.transactions.length} transactions`);
+
+  app.listen(PORT, () => {
+    console.log(`🚀 FinVault server running at http://localhost:${PORT}`);
+    console.log(`📡 Webhook: http://localhost:${PORT}/webhook`);
+    console.log(`🌐 Dashboard: http://localhost:${PORT}/finvault_v3.html`);
+  });
+}
+
+startServer();
 
 // ── TRANSACTIONS ─────────────────────────────
 app.get("/transactions", (req, res) => res.json(db.transactions));
@@ -264,8 +282,8 @@ app.get("/health", (req, res) => {
   res.json({ status: "online", transactions: db.transactions.length, time: new Date().toISOString() });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 FinVault server running at http://localhost:${PORT}`);
-  console.log(`📡 Webhook: http://localhost:${PORT}/webhook`);
-  console.log(`🌐 Dashboard: http://localhost:${PORT}/finvault_v3.html`);
-});
+// app.listen(PORT, () => {
+//   console.log(`🚀 FinVault server running at http://localhost:${PORT}`);
+//   console.log(`📡 Webhook: http://localhost:${PORT}/webhook`);
+//   console.log(`🌐 Dashboard: http://localhost:${PORT}/finvault_v3.html`);
+// });
