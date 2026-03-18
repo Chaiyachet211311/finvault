@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-const fs = require("fs");
+// const fs = require("fs");
 // require("dotenv").config();
 if (process.env.NODE_ENV !== 'production') require("dotenv").config();
 
@@ -14,62 +14,90 @@ app.use(express.static(path.join(__dirname)));
 // ── CONFIG ────────────────────────────────────
 // const CLAUDE_API_KEY = "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";
 const CLAUDE_API_KEY = process.env.CLAUDE_API_KEY;
+const JSONBIN_BIN_ID = process.env.JSONBIN_BIN_ID;
+const JSONBIN_API_KEY = process.env.JSONBIN_API_KEY;
 const PORT = 3000;
 const DB_FILE = path.join(__dirname, "db.json");
 // ─────────────────────────────────────────────
 
-function loadDB() {
+// function loadDB() {
+//   try {
+//     if (fs.existsSync(DB_FILE)) {
+//       return JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
+//     }
+//   } catch (e) {
+//     console.log("Could not load db.json, starting fresh");
+//   }
+//   return {
+//     transactions: [],
+//     investments: [
+//       { id: 1, ticker: "VWCE",    name: "Vanguard All-World ETF", shares: 45,   price: 128.40, cost: 110.20, type: "ETF"    },
+//       { id: 2, ticker: "ASML",    name: "ASML Holding NV",        shares: 3,    price: 842.50, cost: 790.00, type: "Stock"  },
+//       { id: 3, ticker: "CSPX",    name: "iShares Core S&P 500",   shares: 20,   price: 515.80, cost: 480.00, type: "ETF"    },
+//       { id: 4, ticker: "BTC-USD", name: "Bitcoin",                shares: 0.12, price: 68400,  cost: 52000,  type: "Crypto" },
+//       { id: 5, ticker: "ETH-USD", name: "Ethereum",               shares: 1.5,  price: 3200,   cost: 2800,   type: "Crypto" },
+//     ],
+//     income: [
+//       { id: 1, source: "Salary",           amount: 4200, frequency: "Monthly",   category: "Employment" },
+//       { id: 2, source: "Freelance Design", amount: 850,  frequency: "Variable",  category: "Freelance"  },
+//       { id: 3, source: "Dividend — VWCE",  amount: 120,  frequency: "Quarterly", category: "Investment" },
+//       { id: 4, source: "Rental Income",    amount: 650,  frequency: "Monthly",   category: "Property"   },
+//     ],
+//     budgets: [
+//       { id: 1, cat: "Groceries",     limit: 400, spent: 0 },
+//       { id: 2, cat: "Dining",        limit: 200, spent: 0 },
+//       { id: 3, cat: "Transport",     limit: 150, spent: 0 },
+//       { id: 4, cat: "Shopping",      limit: 300, spent: 0 },
+//       { id: 5, cat: "Entertainment", limit: 100, spent: 0 },
+//       { id: 6, cat: "Utilities",     limit: 180, spent: 0 },
+//     ],
+//     networth: {
+//       assets: [
+//         { id: 1, name: "Investment Portfolio", value: 28640,  color: "#00c87a" },
+//         { id: 2, name: "Savings Account",      value: 12000,  color: "#00c8f0" },
+//         { id: 3, name: "Checking Account",     value: 3400,   color: "#9b6dff" },
+//         { id: 4, name: "Property Value",       value: 180000, color: "#f5a623" },
+//       ],
+//       liabilities: [
+//         { id: 1, name: "Mortgage",     value: 142000, color: "#ff4560" },
+//         { id: 2, name: "Student Loan", value: 8200,   color: "#f5a623" },
+//         { id: 3, name: "Credit Card",  value: 1200,   color: "#f06292" },
+//       ],
+//     },
+//   };
+// }
+
+// function saveDB() {
+//   try {
+//     fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
+//   } catch (e) {
+//     console.error("Could not save db.json:", e.message);
+//   }
+// }
+
+async function loadDB() {
   try {
-    if (fs.existsSync(DB_FILE)) {
-      return JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
-    }
-  } catch (e) {
-    console.log("Could not load db.json, starting fresh");
+    const r = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+      headers: { 'X-Master-Key': JSONBIN_API_KEY }
+    });
+    const data = await r.json();
+    console.log('📂 Database loaded from JSONBin');
+    return data.record;
+  } catch(e) {
+    console.log('Could not load from JSONBin:', e.message);
+    return { transactions: [], investments: [], income: [], budgets: [], networth: { assets: [], liabilities: [] } };
   }
-  return {
-    transactions: [],
-    investments: [
-      { id: 1, ticker: "VWCE",    name: "Vanguard All-World ETF", shares: 45,   price: 128.40, cost: 110.20, type: "ETF"    },
-      { id: 2, ticker: "ASML",    name: "ASML Holding NV",        shares: 3,    price: 842.50, cost: 790.00, type: "Stock"  },
-      { id: 3, ticker: "CSPX",    name: "iShares Core S&P 500",   shares: 20,   price: 515.80, cost: 480.00, type: "ETF"    },
-      { id: 4, ticker: "BTC-USD", name: "Bitcoin",                shares: 0.12, price: 68400,  cost: 52000,  type: "Crypto" },
-      { id: 5, ticker: "ETH-USD", name: "Ethereum",               shares: 1.5,  price: 3200,   cost: 2800,   type: "Crypto" },
-    ],
-    income: [
-      { id: 1, source: "Salary",           amount: 4200, frequency: "Monthly",   category: "Employment" },
-      { id: 2, source: "Freelance Design", amount: 850,  frequency: "Variable",  category: "Freelance"  },
-      { id: 3, source: "Dividend — VWCE",  amount: 120,  frequency: "Quarterly", category: "Investment" },
-      { id: 4, source: "Rental Income",    amount: 650,  frequency: "Monthly",   category: "Property"   },
-    ],
-    budgets: [
-      { id: 1, cat: "Groceries",     limit: 400, spent: 0 },
-      { id: 2, cat: "Dining",        limit: 200, spent: 0 },
-      { id: 3, cat: "Transport",     limit: 150, spent: 0 },
-      { id: 4, cat: "Shopping",      limit: 300, spent: 0 },
-      { id: 5, cat: "Entertainment", limit: 100, spent: 0 },
-      { id: 6, cat: "Utilities",     limit: 180, spent: 0 },
-    ],
-    networth: {
-      assets: [
-        { id: 1, name: "Investment Portfolio", value: 28640,  color: "#00c87a" },
-        { id: 2, name: "Savings Account",      value: 12000,  color: "#00c8f0" },
-        { id: 3, name: "Checking Account",     value: 3400,   color: "#9b6dff" },
-        { id: 4, name: "Property Value",       value: 180000, color: "#f5a623" },
-      ],
-      liabilities: [
-        { id: 1, name: "Mortgage",     value: 142000, color: "#ff4560" },
-        { id: 2, name: "Student Loan", value: 8200,   color: "#f5a623" },
-        { id: 3, name: "Credit Card",  value: 1200,   color: "#f06292" },
-      ],
-    },
-  };
 }
 
-function saveDB() {
+async function saveDB() {
   try {
-    fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
-  } catch (e) {
-    console.error("Could not save db.json:", e.message);
+    await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_API_KEY },
+      body: JSON.stringify(db)
+    });
+  } catch(e) {
+    console.error('Could not save to JSONBin:', e.message);
   }
 }
 
