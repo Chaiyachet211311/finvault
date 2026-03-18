@@ -12,12 +12,21 @@ app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname)));  
 
 // ── CONFIG ────────────────────────────────────
-// const CLAUDE_API_KEY = "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";
 const CLAUDE_API_KEY = process.env.CLAUDE_API_KEY;
 const JSONBIN_BIN_ID = process.env.JSONBIN_BIN_ID;
 const JSONBIN_API_KEY = process.env.JSONBIN_API_KEY;
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const DB_FILE = path.join(__dirname, "db.json");
+
+// Validate required environment variables
+const missing = [];
+if (!CLAUDE_API_KEY) missing.push('CLAUDE_API_KEY');
+if (!JSONBIN_BIN_ID) missing.push('JSONBIN_BIN_ID');
+if (!JSONBIN_API_KEY) missing.push('JSONBIN_API_KEY');
+if (missing.length) {
+  console.error(`⚠️  Missing environment variables: ${missing.join(', ')}`);
+  console.error('   Webhook and database features will NOT work!');
+}
 // ─────────────────────────────────────────────
 
 // function loadDB() {
@@ -91,13 +100,23 @@ async function loadDB() {
 
 async function saveDB() {
   try {
-    await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+    if (!JSONBIN_BIN_ID || !JSONBIN_API_KEY) {
+      console.error('❌ Cannot save: JSONBIN_BIN_ID or JSONBIN_API_KEY not set');
+      return;
+    }
+    const r = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_API_KEY },
       body: JSON.stringify(db)
     });
+    if (!r.ok) {
+      const errText = await r.text();
+      console.error(`❌ JSONBin save failed (${r.status}): ${errText}`);
+    } else {
+      console.log('💾 Database saved to JSONBin');
+    }
   } catch(e) {
-    console.error('Could not save to JSONBin:', e.message);
+    console.error('❌ Could not save to JSONBin:', e.message);
   }
 }
 
@@ -243,10 +262,20 @@ app.post("/webhook", async (req, res) => {
   const from = req.body.From;
   console.log(`📱 Message from ${from}: ${message}`);
 
+  if (!message) {
+    console.error("❌ Webhook received empty message body. req.body:", JSON.stringify(req.body));
+    res.set("Content-Type", "text/xml");
+    res.send(`<Response><Message>No message received.</Message></Response>`);
+    return;
+  }
+
   res.set("Content-Type", "text/xml");
   res.send(`<Response><Message>Processing your transaction...</Message></Response>`);
 
   try {
+    if (!CLAUDE_API_KEY) throw new Error("CLAUDE_API_KEY is not set");
+
+    console.log("🤖 Calling Claude API...");
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -264,16 +293,26 @@ app.post("/webhook", async (req, res) => {
       }),
     });
 
+    if (!response.ok) {
+      const errBody = await response.text();
+      throw new Error(`Claude API error ${response.status}: ${errBody}`);
+    }
+
     const data = await response.json();
+    if (!data.content || !data.content[0] || !data.content[0].text) {
+      throw new Error(`Unexpected Claude response: ${JSON.stringify(data)}`);
+    }
+
     const text = data.content[0].text.trim();
+    console.log("🤖 Claude response:", text);
     const clean = text.replace(/```json|```/g, "").trim();
     const parsed = JSON.parse(clean);
     const tx = { id: Date.now(), ...parsed, source: "whatsapp" };
     db.transactions.push(tx);
-    saveDB();
+    await saveDB();
     console.log("✅ Transaction saved:", tx);
   } catch (err) {
-    console.error("❌ Error:", err.message);
+    console.error("❌ Webhook processing error:", err.message);
   }
 });
 
